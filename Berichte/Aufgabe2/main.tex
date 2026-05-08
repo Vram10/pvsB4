@@ -333,7 +333,7 @@ otherStage(p) = allPhases - stage(p);
 \end{lstlisting}
 
 \subsubsection{Erweitertes Kommunikationsprotokoll}
-%Der \texttt{TrafficLight}-Prozess wird so erweitert, dass er aktiv Signale zur Übergabe (\texttt{handover_control}) und Übernahme (\texttt{take_control}) der Wegerechte nutzt. In Listing \ref{lst:trafficlight-sync} ist die neue Logik für den Zustand \texttt{red} ersichtlich: Eine rote Ampel wartet auf das Bereitschaftssignal der Gruppe (\texttt{wait_for}) und führt dann einen synchronisierten Wechsel mit der Gegenrichtung aus.
+Der \texttt{TrafficLight}-Prozess wird so erweitert, dass er aktiv Signale zur Übergabe (\texttt{handover\_control}) und Übernahme (\texttt{take\_control}) der Wegerechte nutzt. In Listing \ref{lst:trafficlight-sync} ist die neue Logik für den Zustand \texttt{red} ersichtlich: Eine rote Ampel wartet auf das Bereitschaftssignal der Gruppe (\texttt{wait\_for}) und führt dann einen synchronisierten Wechsel mit der Gegenrichtung aus.
 //TODO
 \begin{lstlisting}[caption={Synchronisierter Ampel-Zyklus}, label={lst:trafficlight-sync}]
 proc
