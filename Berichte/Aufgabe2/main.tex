@@ -1,0 +1,90 @@
+\documentclass{article}
+
+% --- Grundlegende Dokumenteneinstellungen ---
+\usepackage[utf8]{inputenc}       % Kodierung (bei modernem LuaLaTeX/XeLaTeX nicht mehr nötig)
+\usepackage[T1]{fontenc}          % Korrekte Trennung von Wörtern mit Umlauten
+\usepackage[ngerman]{babel}       % Deutsche Rechtschreibung und Bezeichnungen
+\usepackage{geometry}             % Seitenränder einstellen
+\usepackage{parskip}              % Absätze durch Abstand statt Einrückung trennen
+
+% --- Grafik & Design ---
+\usepackage{graphicx}             % Einbinden von Bildern
+\usepackage{xcolor}               % Farben nutzen
+\usepackage{float}                % Bessere Platzierung von Bildern ([H])
+\usepackage{tikz}                 % Zeichnungen direkt in LaTeX
+\usepackage{tcolorbox}            % Schicke Boxen für Hervorhebungen
+
+% --- Mathe & Symbole ---
+\usepackage{amsmath}              % Standard für mathematische Formeln
+\usepackage{seqsplit}             % Lange Zeichenfolgen (z.B. DNA) umbrechen
+
+% --- Programmierung & Code ---
+\usepackage{listings}             % Quellcode-Darstellung
+% --- Farben für die Code-Boxen definieren ---
+\definecolor{codebackground}{rgb}{0.95, 0.95, 0.96}
+\definecolor{codeframe}{rgb}{0.75, 0.75, 0.8}
+
+% --- Globale Einstellungen für das listings-Paket ---
+\lstset{
+    backgroundcolor=\color{codebackground}, % Heller Hintergrund
+    frame=single,                           % Ein einfacher Rahmen um den Code
+    rulecolor=\color{codeframe},            % Farbe des Rahmens
+    basicstyle=\ttfamily\small,             % Schriftart und Größe
+    breaklines=true,                        % Zeilenumbrüche aktivieren
+    captionpos=b,                           % Bildunterschrift (Caption) nach unten (bottom)
+    keepspaces=true,                        % Leerzeichen exakt beibehalten
+    numbers=left,                           % Zeilennummern auf der linken Seite
+    numberstyle=\tiny\color{gray},          % Stil der Zeilennummern
+    xleftmargin=2em,                        % Abstand zum linken Rand (Platz für Nummern)
+    framexleftmargin=1.5em                  % Rahmen zieht sich um die Nummern
+}
+
+
+
+% --- Verweise & Hyperlinks (Immer als letztes laden!) ---
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, 
+    urlcolor=blue,
+    linkcolor=black               % Optional: interne Links schwarz lassen
+}
+
+\begin{document}
+
+
+\begin{titlepage}
+    \centering
+
+   
+
+    % Hochschulkontext
+    \textbf{Fachbereich Technik – Studiengang Informatik}
+    \vspace{2.5cm}
+
+    % Titel
+    {\Huge\bfseries Aufgabe 4 \par}
+    \vspace{1cm}
+    {\Large zum Modul\\[0.3cm]
+    \textit{Parralele und verteilte Systeme}\par}
+    \vspace{1cm}
+    {\large Sommersemester 2026\par}
+
+    \vfill
+
+    % Persönliche Angaben
+    \begin{flushleft}
+    \textbf{Gruppe: B4}
+    \end{flushleft}
+\end{titlepage}
+
+
+
+
+\tableofcontents
+
+\newpage
+
+
+
+
+\end{document}
