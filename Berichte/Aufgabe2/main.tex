@@ -310,7 +310,56 @@ Entwicklung eines dezentralen Algorithmus ohne zentralen Monitor.
     \item Auswertung der hocheffizienten reduzierten Version (21 Zustände, 28 Übergänge).
 \end{itemize}
 
-\subsubsection*{Lösung}
+\subsubsection{Lösung}
+In der finalen Ausbaustufe wird die zentrale Steuereinheit durch eine dezentrale Gruppen-Synchronisation ersetzt. Die Ampeln sind nun in funktionale Gruppen (\textit{Stages}) unterteilt, die ihren Zustand autonom untereinander abstimmen.
+
+\subsubsection{Strukturierung in Stages}
+Zur Realisierung der Gruppenlogik werden neue Datentypen eingeführt (Listing \ref{lst:stage-data}). Jede Phase (Ampel) wird einer \texttt{Stage} zugeordnet. Die Funktion \texttt{otherStage} erlaubt es jeder Ampel, dynamisch die konkurrierende Gruppe zu identifizieren, um den Übergang eigenständig zu koordinieren.
+
+\begin{lstlisting}[caption={Definition der Stage-Logik}, label={lst:stage-data}]
+sort
+Stage = Set(Phase);
+
+map
+stage1, stage2, allPhases : Stage;
+stage, otherStage : Phase -> Stage;
+
+eqn
+stage1 = {phaseA, phaseC};
+stage2 = {phaseB, phaseD};
+allPhases = {phaseA, phaseC, phaseB, phaseD};
+stage(phaseA) = stage1; % analog fuer alle Phasen
+otherStage(p) = allPhases - stage(p);
+\end{lstlisting}
+
+\subsubsection{Erweitertes Kommunikationsprotokoll}
+%Der \texttt{TrafficLight}-Prozess wird so erweitert, dass er aktiv Signale zur Übergabe (\texttt{handover_control}) und Übernahme (\texttt{take_control}) der Wegerechte nutzt. In Listing \ref{lst:trafficlight-sync} ist die neue Logik für den Zustand \texttt{red} ersichtlich: Eine rote Ampel wartet auf das Bereitschaftssignal der Gruppe (\texttt{wait_for}) und führt dann einen synchronisierten Wechsel mit der Gegenrichtung aus.
+//TODO
+\begin{lstlisting}[caption={Synchronisierter Ampel-Zyklus}, label={lst:trafficlight-sync}]
+proc
+TrafficLight(p : Phase, c : Colour) =
+show(p, c) .
+(c == red) ->
+(
+wait_for(stage(p)) .
+(
+handover_control(otherStage(p)) .
+take_control(stage(p)) .
+TrafficLight(p, next(c))
+)
+)
+<>
+(
+wait_for(stage(p)) . TrafficLight(p, next(c))
+);
+\end{lstlisting}
+
+
+
+
+
+
+
 
 \section{Analyse und Validierung}
 Vergleich der eigenen Ergebnisse mit den bereitgestellten Referenz-LTS-Dateien (\texttt{TrafficLights v[1-4].lts}) unter Verwendung von \texttt{ltscompare} und \texttt{ltsgraph}.
