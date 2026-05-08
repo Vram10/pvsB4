@@ -196,7 +196,9 @@ Erweiterung des Systems um einen zentralen \texttt{Monitor}-Prozess zur Sicherhe
 In diesem Abschnitt wird das System um einen zentralen Monitor-Prozess erweitert. Dieser dient als Sicherheitsinstanz, die den Zustand der Kreuzung kontinuierlich prüft und bei potenziell gefährlichen Farbkonstellationen das System in einen sicheren Stopp-Zustand (Deadlock) versetzt.
 
 \subsubsection{Sicherheitslogik und Datentypen}
-Um die Sicherheit der Kreuzung formal greifbar zu machen, definieren wir eine Abbildung \texttt{intersectionSafe}. Diese prüft basierend auf den Farben der vier Phasen, ob ein sicherer Zustand vorliegt. In Listing \ref{lst:safety-logic} wird festgelegt, dass die Kreuzung nur dann als sicher gilt, wenn mindestens eine der gegenüberliegenden Achsen (A/C oder B/D) vollständig auf Rot geschaltet ist.
+Um die Sicherheit der Kreuzung formal greifbar zu machen, definieren wir eine Abbildung \texttt{intersectionSafe}. 
+Diese prüft basierend auf den Farben der vier Phasen, ob ein sicherer Zustand vorliegt. 
+In Listing \ref{lst:safety-logic} wird festgelegt, dass die Kreuzung nur dann als sicher gilt, wenn mindestens eine der gegenüberliegenden Achsen (A/C oder B/D) vollständig auf Rot geschaltet ist.
 
 \begin{lstlisting}[caption={Definition der Sicherheitslogik},label={lst:safety-logic}]
 map
@@ -298,7 +300,9 @@ Monitor(red, red, red, red)
 
 
 \subsubsection{Analyse der Steuerung}
-Durch die Verlagerung der Sicherheitsprüfung vor die Zustandsänderung wird das System "konstruktiv sicher". Ein Übergang in einen kritischen Zustand ist durch die Blockierung im \texttt{comm}-Block ausgeschlossen. Das resultierende System enthält keine \texttt{delta}-Zustände durch Sicherheitsverletzungen mehr, sondern bildet die erlaubten, sicheren Schaltzyklen der Kreuzung ab. 
+Durch die Verlagerung der Sicherheitsprüfung vor die Zustandsänderung wird das System sicher. 
+Ein Übergang in einen kritischen Zustand ist durch die Blockierung im \texttt{comm}-Block ausgeschlossen. 
+Das resultierende System enthält keine \texttt{delta}-Zustände durch Sicherheitsverletzungen mehr, sondern bildet die erlaubten, sicheren Schaltzyklen der Kreuzung ab. 
 
 
 \subsection{2b.4 Verteiltes Verfahren zur Synchronisation}
@@ -311,10 +315,13 @@ Entwicklung eines dezentralen Algorithmus ohne zentralen Monitor.
 \end{itemize}
 
 \subsubsection{Lösung}
-In der finalen Ausbaustufe wird die zentrale Steuereinheit durch eine dezentrale Gruppen-Synchronisation ersetzt. Die Ampeln sind nun in funktionale Gruppen (\textit{Stages}) unterteilt, die ihren Zustand autonom untereinander abstimmen.
+In der finalen Ausbaustufe wird die zentrale Steuereinheit durch eine dezentrale Gruppensynchronisation ersetzt. 
+Die Ampeln sind nun in funktionale Gruppen (\textit{Stages}) unterteilt, die ihren Zustand autonom untereinander abstimmen.
 
 \subsubsection{Strukturierung in Stages}
-Zur Realisierung der Gruppenlogik werden neue Datentypen eingeführt (Listing \ref{lst:stage-data}). Jede Phase (Ampel) wird einer \texttt{Stage} zugeordnet. Die Funktion \texttt{otherStage} erlaubt es jeder Ampel, dynamisch die konkurrierende Gruppe zu identifizieren, um den Übergang eigenständig zu koordinieren.
+Zur Realisierung der Gruppenlogik werden neue Datentypen eingeführt (Listing \ref{lst:stage-data}). 
+Jede Phase (Ampel) wird einer \texttt{Stage} zugeordnet. 
+Die Funktion \texttt{otherStage} erlaubt es jeder Ampel, dynamisch die konkurrierende Gruppe zu identifizieren, um den Übergang eigenständig zu koordinieren.
 
 \begin{lstlisting}[caption={Definition der Stage-Logik}, label={lst:stage-data}]
 sort
@@ -333,8 +340,9 @@ otherStage(p) = allPhases - stage(p);
 \end{lstlisting}
 
 \subsubsection{Erweitertes Kommunikationsprotokoll}
-Der \texttt{TrafficLight}-Prozess wird so erweitert, dass er aktiv Signale zur Übergabe (\texttt{handover\_control}) und Übernahme (\texttt{take\_control}) der Wegerechte nutzt. In Listing \ref{lst:trafficlight-sync} ist die neue Logik für den Zustand \texttt{red} ersichtlich: Eine rote Ampel wartet auf das Bereitschaftssignal der Gruppe (\texttt{wait\_for}) und führt dann einen synchronisierten Wechsel mit der Gegenrichtung aus.
-//TODO
+Der \texttt{TrafficLight}-Prozess wird so erweitert, dass er aktiv Signale zur Übergabe (\texttt{handover\_control}) und Übernahme (\texttt{take\_control}) der Wegerechte nutzt. 
+In Listing \ref{lst:trafficlight-sync} ist die neue Logik für den Zustand \texttt{red} ersichtlich: Eine rote Ampel wartet auf das Bereitschaftssignal der Gruppe (\texttt{wait\_for}) und führt dann einen synchronisierten Wechsel mit der Gegenrichtung aus.
+
 \begin{lstlisting}[caption={Synchronisierter Ampel-Zyklus}, label={lst:trafficlight-sync}]
 proc
 TrafficLight(p : Phase, c : Colour) =
@@ -355,7 +363,23 @@ wait_for(stage(p)) . TrafficLight(p, next(c))
 \end{lstlisting}
 
 
+\subsubsection{Systemintegration und Kommunikation}
+Die Koordination erfolgt über den \texttt{comm}-Operator im \texttt{Intersection}-Prozess (Listing \ref{lst:comm-final}). Hier werden die Einzelaktionen der Ampeln zu Gruppenereignissen verschmolzen:
+\begin{itemize}
+\item \textbf{switch}: Entsteht aus der zeitgleichen Übergabe und Übernahme der Kontrolle zwischen zwei Stages.
+\item \textbf{whole\_stage\_rdy}: Synchronisiert die Ampeln innerhalb einer Stage, sodass diese nur gemeinsam schalten.
+\end{itemize}  
 
+%//TODO Irgendwie gefällt mir die Einzeiler aufteilung hier nicht
+\begin{lstlisting}[caption={Dezentrale Synchronisation im Intersection-Prozess}, label={lst:comm-final}]
+    procIntersection =hide({handover_control, take_control, wait_for, ...},allow({show, switch, whole_stage_rdy, ...},comm({handover_control | take_control -> switch,wait_for | wait_for -> whole_stage_rdy},TrafficLight(phaseA, stage1) ||TrafficLight(phaseB, stage1) ||TrafficLight(phaseC, stage1) ||TrafficLight(phaseD, stage1))));
+\end{lstlisting}
+
+\subsubsection{Analyse}
+
+Durch den Wegfall eines zentralen Controllers und die Nutzung von Multi Aktions Synchronisation (\texttt{comm}) wird ein hochgradig paralleles System geschaffen.
+Die Sicherheit wird hierbei nicht mehr durch Pruefung (Monitor),
+ sondern durch die strukturelle Kopplung der Gruppen Aktionen erzwungen.
 
 
 
