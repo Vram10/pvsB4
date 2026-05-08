@@ -49,8 +49,8 @@
     linkcolor=black               % Optional: interne Links schwarz lassen
 }
 
-\begin{document}
 
+\begin{document}
 
 \begin{titlepage}
     \centering
@@ -76,6 +76,7 @@
     \textbf{Gruppe: B4}
     \end{flushleft}
 \end{titlepage}
+
 
 
 
@@ -138,26 +139,26 @@ eqn                                                       % specifies the cycle 
 
 \subsubsection{Definition der Ampeln}
 
-Als nächstes gilt es die Eigenschaften der Ampeln zu definieren. Um die Zustandsänderungen im System sichtbar zu machen, wird in Zeile \ref{line:act-show} zunächst die Aktion \texttt{show} definiert, welche die aktuelle Phase und die Farbe der Ampel nach außen kommuniziert.
+Als nächstes gilt es die Eigenschaften der Ampeln zu definieren. Um die Zustandsänderungen im System sichtbar zu machen, wird in Zeile 5 zunächst die Aktion \texttt{show} definiert, welche die aktuelle Phase und die Farbe der Ampel nach außen kommuniziert.
 
-Der eigentliche Prozess \texttt{TrafficLight} wird in Zeile \ref{line:proc-def} spezifiziert. Er ist mit der jeweiligen Phase \texttt{p} und der aktuellen Farbe \texttt{c} parametrisiert. Das Verhalten der Ampel ist als rekursiver Prozess definiert: Zuerst führt die Ampel die Aktion \texttt{show(p, c)} aus (Zeile \ref{line:show-exec}), um ihren aktuellen Zustand zu signalisieren. Unmittelbar danach ruft sich der Prozess selbst mit der nächsten Farbe im Zyklus auf, wobei die Funktion \texttt{next(c)} verwendet wird.
+Der eigentliche Prozess \texttt{TrafficLight} wird in Zeile 7 spezifiziert. Er ist mit der jeweiligen Phase \texttt{p} und der aktuellen Farbe \texttt{c} parametrisiert. Das Verhalten der Ampel ist als rekursiver Prozess definiert: Zuerst führt die Ampel die Aktion \texttt{show(p, c)} aus (Zeile 9), um ihren aktuellen Zustand zu signalisieren. Unmittelbar danach ruft sich der Prozess selbst mit der nächsten Farbe im Zyklus auf, wobei die Funktion \texttt{next(c)} verwendet wird.
 
 \begin{lstlisting}[
-    language=mCRL2, 
+   % language=mCRL2, 
     caption={Spezifikation des Ampel-Prozesses}, 
-    label={lst:trafficlight},
-    escapeinside={(*}{*)} % Erlaubt LaTeX-Referenzen innerhalb des Codes
+    label={lst:trafficlight}
+   % escapeinside={(*}{*)} % Erlaubt LaTeX-Referenzen innerhalb des Codes
 ]
 %
 % Definition of a TrafficLight
 %
 act
-    show : Phase # Colour; (*\label{line:act-show}*) % the given traffic light shows the given colour
+    show : Phase # Colour;  % the given traffic light shows the given colour
 
-proc (*\label{line:proc-def}*)
+proc 
     TrafficLight(p : Phase, c : Colour) = 
-        show(p, c) . (*\label{line:show-exec}*)
-        TrafficLight(p, next(c)); (*\label{line:recursive-call}*)
+        show(p, c) . 
+        TrafficLight(p, next(c)); 
 
 
 \end{lstlisting} 
@@ -167,11 +168,8 @@ proc (*\label{line:proc-def}*)
 Initialisieren können wir unsere Ampeln abschließend über die Erstellung der Objekte mit ihrem Phasennamen sowie der Farbe mit der sie starten sollen wie in Listing \ref{lst:inittrafficlights}.
 
 
-\begin{lstlisting}[
-    language=mCRL2, 
-    caption={Initialisierung der Ampeln}, 
-    label={lst:inittrafficlights},
-    escapeinside={(*}{*)} % Erlaubt LaTeX-Referenzen innerhalb des Codes
+\begin{lstlisting}[caption={Initialisierung der Ampeln},label={lst:inittrafficlights}
+   % escapeinside={(*}{*)} % Erlaubt LaTeX-Referenzen innerhalb des Codes
 ]
 % Initialisierung: Alle Ampeln starten im Zustand red
 init
@@ -219,7 +217,7 @@ Der \texttt{Monitor}-Prozess (Listing \ref{lst:monitor-proc}) hält den aktuelle
 \item \textbf{Unsafe}: Die Aktion \texttt{intersectionUnsafe} wird ausgelöst, gefolgt von \texttt{delta}, was den Systemstopp erzwingt.
 \end{itemize}
 
-\begin{lstlisting}[language=mCRL2, caption={Spezifikation des Monitors}, label={lst:monitor-proc}]
+\begin{lstlisting}[ caption={Spezifikation des Monitors}, label={lst:monitor-proc}]
 proc
 Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
 sum c : Colour . (
@@ -233,7 +231,7 @@ intersectionSafe(c, cB, cC, cD) -> Monitor(c, cB, cC, cD)
 \subsubsection{Synchronisation und Kommunikation}
 Für die Überwachung müssen die Ampeln mit dem Monitor kommunizieren. Hierzu werden in Listing \ref{lst:comm-actions} neue Aktionen definiert. Die Kommunikation wird im \texttt{Intersection}-Prozess über den \texttt{comm}-Operator gekapselt: Die Aktion \texttt{show} der Ampel und \texttt{checkColour} des Monitors synchronisieren zur Aktion \texttt{colourSeen}.
 
-\begin{lstlisting}[language=mCRL2, caption={Erweiterte Aktionen und Systemkomposition}, label={lst:comm-actions}]
+\begin{lstlisting}[caption={Erweiterte Aktionen und Systemkomposition}, label={lst:comm-actions}]
 act
 checkColour: Phase # Colour;
 colourSeen: Phase # Colour;
@@ -268,7 +266,7 @@ In dieser Erweiterung wird der Monitor von einer rein überwachenden Instanz zu 
 
 \subsubsection{Analyse der Sicherheitslogik}
 Der entscheidende Unterschied liegt in der Prozessdefinition des Monitors. In Listing \ref{lst:monitor-control} ist zu sehen, dass die Bedingung \texttt{intersectionSafe} nun mittels des Bedingungsoperators \texttt{->} der Aktion \texttt{checkColour} vorangestellt ist.  Eine Ampel kann ihre Farbe nur dann zu \texttt{c} wechseln, wenn der resultierende Gesamtzustand der Kreuzung bereits im Vorfeld als sicher eingestuft wurde. Ist dies nicht der Fall, wird die Aktion blockiert und der Prozess wartet, bis eine sichere Schaltung möglich ist.  
-\begin{lstlisting}[language=mCRL2, caption={Monitor als aktive Steuerung}, label={lst:monitor-control}]
+\begin{lstlisting}[ caption={Monitor als aktive Steuerung}, label={lst:monitor-control}]
 proc
 Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
 sum c : Colour . (
@@ -282,7 +280,7 @@ sum c : Colour . (
 \subsubsection{Anpassung des Gesamtsystems}
 Da die Steuerung nun sicherstellt, dass niemals ein unsicherer Zustand erreicht wird, entfällt die Notwendigkeit für eine Fehlerbehandlung via \texttt{intersectionUnsafe}. In der Systemkomposition (Listing \ref{lst:intersection-final}) wird daher nur noch die synchronisierte Aktion \texttt{colourSeen} erlaubt.  
 
-\begin{lstlisting}[language=mCRL2, caption={Systemkomposition der koordinierten Steuerung}, label={lst:intersection-final}]
+\begin{lstlisting}[caption={Systemkomposition der koordinierten Steuerung}, label={lst:intersection-final}]
 proc
 Intersection =
 hide({show, checkColour},
