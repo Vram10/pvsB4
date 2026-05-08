@@ -87,4 +87,262 @@
 
 
 
+% --- Punkt 1 (Platzhalter, falls benötigt) ---
+\section{Aufgabe 2a}
+Ich habe leider die Aufgabenstellung noch nicht
+
+% --- Punkt 2: Die Hauptaufgabe ---
+
+%Ich hoffe der Zyklus stimmt //TODO
+\section{2b Parallele Spezifikationen: Ampelsystem}
+In dieser Aufgabe wird ein Ampelsystem für eine Straßenkreuzung in mCRL2 spezifiziert. Das System nutzt die Phasen (\texttt{phaseA} bis \texttt{phaseD}) und Farben (\texttt{red, yellow, green}). Der Standardablauf folgt dem Zyklus: \texttt{red} $\rightarrow$ \texttt{green} $\rightarrow$ \texttt{yellow} $\rightarrow$ \texttt{red}. Initial zeigen alle Ampeln \texttt{red}.
+
+
+%Ich habe die Analyse der reduzierten Darstellung in MCRL2 ab 2b.2 vergessen //TODO
+
+
+\subsection{2b.1 Unabhängige parallele Ampeln}
+Erstellung einer Spezifikation, in der vier Ampeln parallel und unabhängig voneinander agieren.
+\begin{itemize}
+    \item Fokus: Endlosschleife der Zustände.
+    \item Analyse des Zustandsraums: Erwartet werden 81 Zustände und 1215 Übergänge.
+    \item Darstellung des LTS und Vergleich mit der Referenzgröße (< 75 LOC).
+\end{itemize}
+
+\subsubsection*{Lösung}
+Zunächst legen wir die Datentypen und Eigenschaften der Ampeln fest und initieren diese Anschließend über die Funktion Init.
+
+\subsubsection{Analyse }
+Zunächst analysieren wir das Java Programm aus Aufgabe 1 und versuchen die für MCRL2 wichtige Aspekte zu identifizieren um diese überführen zu können.
+Hier haben wir die Ampeln (siehe Zeile 5 in Listing \ref{lst:datentypen}), die Farben(siehe Zeile 7 in Listing \ref{lst:datentypen}), den Prozess des Farbewechselns (siehe Zeile 11 in Listing \ref{lst:datentypen}) sowie die Reihenfolge des Farbenwechselns festgemacht (siehe Zeile 13 in Listing \ref{lst:datentypen}).
+
+\begin{lstlisting}[caption={Definition der Datentypen und Farbregeln},label={lst:datentypen}]
+% Definition of data types
+%
+
+sort
+  Phase = struct phaseA | phaseB | phaseC | phaseD;       % 4 phases
+
+sort
+  Colour = struct red | yellow | green;                   % define Colour
+
+map
+  next : Colour -> Colour;                                % define next rule 
+
+eqn                                                       % specifies the cycle of the traffic lights 
+  next(red) = green;                                      % red     -> green
+  next(green) = yellow;                                   % green   -> yellow
+  next(yellow) = red;                                     % yellow  -> red
+\end{lstlisting}
+
+
+\subsubsection{Definition der Ampeln}
+
+Als nächstes gilt es die Eigenschaften der Ampeln zu definieren. Um die Zustandsänderungen im System sichtbar zu machen, wird in Zeile \ref{line:act-show} zunächst die Aktion \texttt{show} definiert, welche die aktuelle Phase und die Farbe der Ampel nach außen kommuniziert.
+
+Der eigentliche Prozess \texttt{TrafficLight} wird in Zeile \ref{line:proc-def} spezifiziert. Er ist mit der jeweiligen Phase \texttt{p} und der aktuellen Farbe \texttt{c} parametrisiert. Das Verhalten der Ampel ist als rekursiver Prozess definiert: Zuerst führt die Ampel die Aktion \texttt{show(p, c)} aus (Zeile \ref{line:show-exec}), um ihren aktuellen Zustand zu signalisieren. Unmittelbar danach ruft sich der Prozess selbst mit der nächsten Farbe im Zyklus auf, wobei die Funktion \texttt{next(c)} verwendet wird.
+
+\begin{lstlisting}[
+    language=mCRL2, 
+    caption={Spezifikation des Ampel-Prozesses}, 
+    label={lst:trafficlight},
+    escapeinside={(*}{*)} % Erlaubt LaTeX-Referenzen innerhalb des Codes
+]
+%
+% Definition of a TrafficLight
+%
+act
+    show : Phase # Colour; (*\label{line:act-show}*) % the given traffic light shows the given colour
+
+proc (*\label{line:proc-def}*)
+    TrafficLight(p : Phase, c : Colour) = 
+        show(p, c) . (*\label{line:show-exec}*)
+        TrafficLight(p, next(c)); (*\label{line:recursive-call}*)
+
+
+\end{lstlisting} 
+
+
+\subsubsection{Initialisierung}
+Initialisieren können wir unsere Ampeln abschließend über die Erstellung der Objekte mit ihrem Phasennamen sowie der Farbe mit der sie starten sollen wie in Listing \ref{lst:inittrafficlights}.
+
+
+\begin{lstlisting}[
+    language=mCRL2, 
+    caption={Initialisierung der Ampeln}, 
+    label={lst:inittrafficlights},
+    escapeinside={(*}{*)} % Erlaubt LaTeX-Referenzen innerhalb des Codes
+]
+% Initialisierung: Alle Ampeln starten im Zustand red
+init
+    TrafficLight(phaseA, red) || 
+    TrafficLight(phaseB, red) || 
+    TrafficLight(phaseC, red) || 
+    TrafficLight(phaseD, red);
+\end{lstlisting} 
+
+
+
+
+\subsection{2b.2 Überwachung durch einen Monitor-Prozess}
+Erweiterung des Systems um einen zentralen \texttt{Monitor}-Prozess zur Sicherheitsüberprüfung.
+\begin{itemize}
+    \item Implementierung der Funktion \texttt{intersectionSafe}.
+    \item Kommunikation über \texttt{checkColour} und \texttt{colourSeen}.
+    \item Fehlerbehandlung: Ausgabe von \texttt{intersectionUnsafe} und Systemstopp bei unsicheren Zuständen.
+    \item Analyse der reduzierten Version (bbsim): ca. 141 Zustände.
+\end{itemize}
+
+\subsubsection*{Lösung}
+
+In diesem Abschnitt wird das System um einen zentralen Monitor-Prozess erweitert. Dieser dient als Sicherheitsinstanz, die den Zustand der Kreuzung kontinuierlich prüft und bei potenziell gefährlichen Farbkonstellationen das System in einen sicheren Stopp-Zustand (Deadlock) versetzt.
+
+\subsubsection{Sicherheitslogik und Datentypen}
+Um die Sicherheit der Kreuzung formal greifbar zu machen, definieren wir eine Abbildung \texttt{intersectionSafe}. Diese prüft basierend auf den Farben der vier Phasen, ob ein sicherer Zustand vorliegt. In Listing \ref{lst:safety-logic} wird festgelegt, dass die Kreuzung nur dann als sicher gilt, wenn mindestens eine der gegenüberliegenden Achsen (A/C oder B/D) vollständig auf Rot geschaltet ist.
+
+\begin{lstlisting}[caption={Definition der Sicherheitslogik},label={lst:safety-logic}]
+map
+intersectionSafe : Colour # Colour # Colour # Colour -> Bool;
+
+var
+cA, cB, cC, cD : Colour;
+
+eqn
+% Die Kreuzung ist sicher, wenn Phase A und C oder Phase B und D rot zeigen
+intersectionSafe(cA,cB,cC,cD) = (cA == red && cC == red) || (cB == red && cD == red);
+\end{lstlisting}
+
+\subsubsection{Der Monitor-Prozess}
+Der \texttt{Monitor}-Prozess (Listing \ref{lst:monitor-proc}) hält den aktuellen Zustand aller vier Ampeln vor. Über die Aktion \texttt{checkColour} registriert er Farbänderungen. Mithilfe des Bedingungsoperators \texttt{->} wird geprüft, ob der neue Zustand sicher ist:
+\begin{itemize}
+\item \textbf{Safe}: Der Monitor aktualisiert seinen internen Zustand rekursiv.
+\item \textbf{Unsafe}: Die Aktion \texttt{intersectionUnsafe} wird ausgelöst, gefolgt von \texttt{delta}, was den Systemstopp erzwingt.
+\end{itemize}
+
+\begin{lstlisting}[language=mCRL2, caption={Spezifikation des Monitors}, label={lst:monitor-proc}]
+proc
+Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
+sum c : Colour . (
+checkColour(phaseA, c) . (
+intersectionSafe(c, cB, cC, cD) -> Monitor(c, cB, cC, cD)
+<> intersectionUnsafe(c, cB, cC, cD) . delta
+)
++   % Analog fuer Phase B, C und D...
+\end{lstlisting}
+
+\subsubsection{Synchronisation und Kommunikation}
+Für die Überwachung müssen die Ampeln mit dem Monitor kommunizieren. Hierzu werden in Listing \ref{lst:comm-actions} neue Aktionen definiert. Die Kommunikation wird im \texttt{Intersection}-Prozess über den \texttt{comm}-Operator gekapselt: Die Aktion \texttt{show} der Ampel und \texttt{checkColour} des Monitors synchronisieren zur Aktion \texttt{colourSeen}.
+
+\begin{lstlisting}[language=mCRL2, caption={Erweiterte Aktionen und Systemkomposition}, label={lst:comm-actions}]
+act
+checkColour: Phase # Colour;
+colourSeen: Phase # Colour;
+intersectionUnsafe: Colour # Colour # Colour # Colour;
+
+proc
+Intersection =
+hide({show, checkColour},
+allow({colourSeen, intersectionUnsafe},
+comm({show | checkColour -> colourSeen},
+TrafficLight(phaseA, red) ||
+TrafficLight(phaseB, red) ||
+TrafficLight(phaseC, red) ||
+TrafficLight(phaseD, red) ||
+Monitor(red, red, red, red)
+)
+)
+);
+\end{lstlisting}
+
+
+
+\subsection{2b.3 Aktive Sicherheitssteuerung durch den Monitor}
+Modifikation der Spezifikation, sodass der Monitor unsichere Kombinationen präventiv verhindert.
+\begin{itemize}
+    \item Nutzung der \texttt{intersectionSafe}-Logik zur Prozesssteuerung.
+    \item Analyse der Zustandsraumreduktion (ca. 112 Zustände nach bbsim-Reduktion).
+\end{itemize}
+
+\subsubsection*{Lösung}
+In dieser Erweiterung wird der Monitor von einer rein überwachenden Instanz zu einer aktiven Steuerung umfunktioniert. Während das System in Version 2b.2 bei einer unsicheren Phase in einen Deadlock lief, verhindert die neue Logik unsichere Zustände präventiv.
+
+\subsubsection{Analyse der Sicherheitslogik}
+Der entscheidende Unterschied liegt in der Prozessdefinition des Monitors. In Listing \ref{lst:monitor-control} ist zu sehen, dass die Bedingung \texttt{intersectionSafe} nun mittels des Bedingungsoperators \texttt{->} der Aktion \texttt{checkColour} vorangestellt ist.  Eine Ampel kann ihre Farbe nur dann zu \texttt{c} wechseln, wenn der resultierende Gesamtzustand der Kreuzung bereits im Vorfeld als sicher eingestuft wurde. Ist dies nicht der Fall, wird die Aktion blockiert und der Prozess wartet, bis eine sichere Schaltung möglich ist.  
+\begin{lstlisting}[language=mCRL2, caption={Monitor als aktive Steuerung}, label={lst:monitor-control}]
+proc
+Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
+sum c : Colour . (
+(intersectionSafe(c, cB, cC, cD) -> checkColour(phaseA, c) . Monitor(c, cB, cC, cD))
++   (intersectionSafe(cA, c, cC, cD) -> checkColour(phaseB, c) . Monitor(cA, c, cC, cD))
++   (intersectionSafe(cA, cB, c, cD) -> checkColour(phaseC, c) . Monitor(cA, cB, c, cD))
++   (intersectionSafe(cA, cB, cC, c) -> checkColour(phaseD, c) . Monitor(cA, cB, cC, c))
+);
+\end{lstlisting}
+
+\subsubsection{Anpassung des Gesamtsystems}
+Da die Steuerung nun sicherstellt, dass niemals ein unsicherer Zustand erreicht wird, entfällt die Notwendigkeit für eine Fehlerbehandlung via \texttt{intersectionUnsafe}. In der Systemkomposition (Listing \ref{lst:intersection-final}) wird daher nur noch die synchronisierte Aktion \texttt{colourSeen} erlaubt.  
+
+\begin{lstlisting}[language=mCRL2, caption={Systemkomposition der koordinierten Steuerung}, label={lst:intersection-final}]
+proc
+Intersection =
+hide({show, checkColour},
+allow({colourSeen},
+comm({show | checkColour -> colourSeen},
+TrafficLight(phaseA, red) ||
+TrafficLight(phaseB, red) ||
+TrafficLight(phaseC, red) ||
+TrafficLight(phaseD, red) ||
+Monitor(red, red, red, red)
+)
+)
+);
+\end{lstlisting}
+
+
+\subsubsection{Analyse der Steuerung}
+Durch die Verlagerung der Sicherheitsprüfung vor die Zustandsänderung wird das System "konstruktiv sicher". Ein Übergang in einen kritischen Zustand ist durch die Blockierung im \texttt{comm}-Block ausgeschlossen. Das resultierende System enthält keine \texttt{delta}-Zustände durch Sicherheitsverletzungen mehr, sondern bildet die erlaubten, sicheren Schaltzyklen der Kreuzung ab. 
+
+
+\subsection{2b.4 Verteiltes Verfahren zur Synchronisation}
+Entwicklung eines dezentralen Algorithmus ohne zentralen Monitor.
+\begin{itemize}
+    \item Spezifikation der Ampeln als eigenständige Instanzen desselben parametrisierten Prozesses.
+    \item Implementierung der direkten Synchronisation zwischen den Instanzen.
+    \item Startsequenz: Alle \texttt{red}, Beginn der Grünphase mit \texttt{phaseA} und \texttt{phaseC}.
+    \item Auswertung der hocheffizienten reduzierten Version (21 Zustände, 28 Übergänge).
+\end{itemize}
+
+\subsubsection*{Lösung}
+
+\section{Analyse und Validierung}
+Vergleich der eigenen Ergebnisse mit den bereitgestellten Referenz-LTS-Dateien (\texttt{TrafficLights v[1-4].lts}) unter Verwendung von \texttt{ltscompare} und \texttt{ltsgraph}.
+
+\subsection{2b.1}
+Vorgaben : 
+(81 states, 1215 transitions)
+ Referenzspezifikation: < 75 LOC
+
+
+\subsection{2b.2}
+Vorgaben :
+ (141 states, 476 transitions für die bbsim-reduzierte Version)
+ Referenzspezifikation: < 130 LOC
+
+
+
+\subsection{2b.3}
+Vorgaben :
+ (112 states, 352 transitions für die bbsim-reduzierte Version)
+ Referenzspezifikation: < 130 LOC
+
+
+
+\subsection{2b.4}
+Vorgaben :
+(21 states, 28 transitions für die bbsim-reduzierte Version)
+ Referenzspezifikation: < 95 LOC
+
+
+
 \end{document}
+
