@@ -185,14 +185,14 @@ ReturnChange(credit : Int) =
 
 
 %Ich hoffe der Zyklus stimmt //TODO
-\section{2b Parallele Spezifikationen: Ampelsystem}
+\section{Parallele Spezifikationen: Ampelsystem}
 In dieser Aufgabe wird ein Ampelsystem für eine Straßenkreuzung in mCRL2 spezifiziert. Das System nutzt die Phasen (\texttt{phaseA} bis \texttt{phaseD}) und Farben (\texttt{red, yellow, green}). Der Standardablauf folgt dem Zyklus: \texttt{red} $\rightarrow$ \texttt{green} $\rightarrow$ \texttt{yellow} $\rightarrow$ \texttt{red}. Initial zeigen alle Ampeln \texttt{red}.
 
 
 %Ich habe die Analyse der reduzierten Darstellung in MCRL2 ab 2b.2 vergessen //TODO
 
 
-\subsection{2b.1 Unabhängige parallele Ampeln}
+\subsection{Unabhängige parallele Ampeln}
 Erstellung einer Spezifikation, in der vier Ampeln parallel und unabhängig voneinander agieren.
 \begin{itemize}
     \item Fokus: Endlosschleife der Zustände.
@@ -215,15 +215,15 @@ sort
   Phase = struct phaseA | phaseB | phaseC | phaseD;       % 4 phases
 
 sort
-  Colour = struct red | yellow | green;                   % define Colour
+  Colour = struct red | yellow | green;       % define Colour
 
 map
-  next : Colour -> Colour;                                % define next rule 
+  next : Colour -> Colour;   % define next rule 
 
-eqn                                                       % specifies the cycle of the traffic lights 
-  next(red) = green;                                      % red     -> green
-  next(green) = yellow;                                   % green   -> yellow
-  next(yellow) = red;                                     % yellow  -> red
+eqn                      % specifies the cycle of the traffic lights 
+  next(red) = green;     % red     -> green
+  next(green) = yellow;  % green   -> yellow
+  next(yellow) = red;    % yellow  -> red
 \end{lstlisting}
 
 
@@ -272,7 +272,7 @@ init
 
 
 
-\subsection{2b.2 Überwachung durch einen Monitor-Prozess}
+\subsection{Überwachung durch einen Monitor-Prozess}
 Erweiterung des Systems um einen zentralen \texttt{Monitor}-Prozess zur Sicherheitsüberprüfung.
 \begin{itemize}
     \item Implementierung der Funktion \texttt{intersectionSafe}.
@@ -311,12 +311,14 @@ Der \texttt{Monitor}-Prozess (Listing \ref{lst:monitor-proc}) hält den aktuelle
 
 \begin{lstlisting}[ caption={Spezifikation des Monitors}, label={lst:monitor-proc}]
 proc
-Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
-sum c : Colour . (
-checkColour(phaseA, c) . (
-intersectionSafe(c, cB, cC, cD) -> Monitor(c, cB, cC, cD)
-<> intersectionUnsafe(c, cB, cC, cD) . delta
-)
+	Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
+	  sum c : Colour . (
+		checkColour(phaseA, c) . (
+		  intersectionSafe(c, cB, cC, cD) -> 
+		    Monitor(c, cB, cC, cD)
+		  <> 
+			intersectionUnsafe(c, cB, cC, cD) . delta
+        )
 +   % Analog fuer Phase B, C und D...
 \end{lstlisting}
 
@@ -325,23 +327,23 @@ Für die Überwachung müssen die Ampeln mit dem Monitor kommunizieren. Hierzu w
 
 \begin{lstlisting}[caption={Erweiterte Aktionen und Systemkomposition}, label={lst:comm-actions}]
 act
-checkColour: Phase # Colour;
-colourSeen: Phase # Colour;
-intersectionUnsafe: Colour # Colour # Colour # Colour;
+  checkColour: Phase # Colour;
+  colourSeen: Phase # Colour;
+  intersectionUnsafe: Colour # Colour # Colour # Colour;
 
 proc
-Intersection =
-hide({show, checkColour},
-allow({colourSeen, intersectionUnsafe},
-comm({show | checkColour -> colourSeen},
-TrafficLight(phaseA, red) ||
-TrafficLight(phaseB, red) ||
-TrafficLight(phaseC, red) ||
-TrafficLight(phaseD, red) ||
-Monitor(red, red, red, red)
-)
-)
-);
+  Intersection =
+    hide({show, checkColour},
+      allow({colourSeen, intersectionUnsafe},
+        comm({show | checkColour -> colourSeen},
+          TrafficLight(phaseA, red) ||
+          TrafficLight(phaseB, red) ||
+          TrafficLight(phaseC, red) ||
+          TrafficLight(phaseD, red) ||
+          Monitor(red, red, red, red)
+        )
+      )
+    );
 \end{lstlisting}
 
 
@@ -360,13 +362,20 @@ In dieser Erweiterung wird der Monitor von einer rein überwachenden Instanz zu 
 Der entscheidende Unterschied liegt in der Prozessdefinition des Monitors. In Listing \ref{lst:monitor-control} ist zu sehen, dass die Bedingung \texttt{intersectionSafe} nun mittels des Bedingungsoperators \texttt{->} der Aktion \texttt{checkColour} vorangestellt ist.  Eine Ampel kann ihre Farbe nur dann zu \texttt{c} wechseln, wenn der resultierende Gesamtzustand der Kreuzung bereits im Vorfeld als sicher eingestuft wurde. Ist dies nicht der Fall, wird die Aktion blockiert und der Prozess wartet, bis eine sichere Schaltung möglich ist.  
 \begin{lstlisting}[ caption={Monitor als aktive Steuerung}, label={lst:monitor-control}]
 proc
-Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
-sum c : Colour . (
-(intersectionSafe(c, cB, cC, cD) -> checkColour(phaseA, c) . Monitor(c, cB, cC, cD))
-+   (intersectionSafe(cA, c, cC, cD) -> checkColour(phaseB, c) . Monitor(cA, c, cC, cD))
-+   (intersectionSafe(cA, cB, c, cD) -> checkColour(phaseC, c) . Monitor(cA, cB, c, cD))
-+   (intersectionSafe(cA, cB, cC, c) -> checkColour(phaseD, c) . Monitor(cA, cB, cC, c))
-);
+  Monitor(cA: Colour, cB: Colour, cC: Colour, cD: Colour) =
+    sum c : Colour . (
+      (intersectionSafe(c, cB, cC, cD) -> 
+        checkColour(phaseA, c) . Monitor(c, cB, cC, cD))
+      +   
+      (intersectionSafe(cA, c, cC, cD) -> 
+        checkColour(phaseB, c) . Monitor(cA, c, cC, cD))
+      +   
+      (intersectionSafe(cA, cB, c, cD) -> 
+        checkColour(phaseC, c) . Monitor(cA, cB, c, cD))
+      +   
+      (intersectionSafe(cA, cB, cC, c) -> 
+        checkColour(phaseD, c) . Monitor(cA, cB, cC, c))
+    );
 \end{lstlisting}
 
 \subsubsection{Anpassung des Gesamtsystems}
@@ -374,18 +383,18 @@ Da die Steuerung nun sicherstellt, dass niemals ein unsicherer Zustand erreicht 
 
 \begin{lstlisting}[caption={Systemkomposition der koordinierten Steuerung}, label={lst:intersection-final}]
 proc
-Intersection =
-hide({show, checkColour},
-allow({colourSeen},
-comm({show | checkColour -> colourSeen},
-TrafficLight(phaseA, red) ||
-TrafficLight(phaseB, red) ||
-TrafficLight(phaseC, red) ||
-TrafficLight(phaseD, red) ||
-Monitor(red, red, red, red)
-)
-)
-);
+  Intersection =
+    hide({show, checkColour},
+      allow({colourSeen},
+        comm({show | checkColour -> colourSeen},
+          TrafficLight(phaseA, red) ||
+          TrafficLight(phaseB, red) ||
+          TrafficLight(phaseC, red) ||
+          TrafficLight(phaseD, red) ||
+          Monitor(red, red, red, red)
+        )
+      )
+    );
 \end{lstlisting}
 
 
@@ -395,7 +404,7 @@ Ein Übergang in einen kritischen Zustand ist durch die Blockierung im \texttt{c
 Das resultierende System enthält keine \texttt{delta}-Zustände durch Sicherheitsverletzungen mehr, sondern bildet die erlaubten, sicheren Schaltzyklen der Kreuzung ab. 
 
 
-\subsection{2b.4 Verteiltes Verfahren zur Synchronisation}
+\subsection{Verteiltes Verfahren zur Synchronisation}
 Entwicklung eines dezentralen Algorithmus ohne zentralen Monitor.
 \begin{itemize}
     \item Spezifikation der Ampeln als eigenständige Instanzen desselben parametrisierten Prozesses.
@@ -415,18 +424,18 @@ Die Funktion \texttt{otherStage} erlaubt es jeder Ampel, dynamisch die konkurrie
 
 \begin{lstlisting}[caption={Definition der Stage-Logik}, label={lst:stage-data}]
 sort
-Stage = Set(Phase);
+  Stage = Set(Phase);
 
 map
-stage1, stage2, allPhases : Stage;
-stage, otherStage : Phase -> Stage;
+  stage1, stage2, allPhases : Stage;
+  stage, otherStage : Phase -> Stage;
 
 eqn
-stage1 = {phaseA, phaseC};
-stage2 = {phaseB, phaseD};
-allPhases = {phaseA, phaseC, phaseB, phaseD};
-stage(phaseA) = stage1; % analog fuer alle Phasen
-otherStage(p) = allPhases - stage(p);
+  stage1 = {phaseA, phaseC};
+  stage2 = {phaseB, phaseD};
+  allPhases = {phaseA, phaseC, phaseB, phaseD};
+  stage(phaseA) = stage1; % analog fuer alle Phasen
+  otherStage(p) = allPhases - stage(p);
 \end{lstlisting}
 
 \subsubsection{Erweitertes Kommunikationsprotokoll}
@@ -435,21 +444,21 @@ In Listing \ref{lst:trafficlight-sync} ist die neue Logik für den Zustand \text
 
 \begin{lstlisting}[caption={Synchronisierter Ampel-Zyklus}, label={lst:trafficlight-sync}]
 proc
-TrafficLight(p : Phase, c : Colour) =
-show(p, c) .
-(c == red) ->
-(
-wait_for(stage(p)) .
-(
-handover_control(otherStage(p)) .
-take_control(stage(p)) .
-TrafficLight(p, next(c))
-)
-)
-<>
-(
-wait_for(stage(p)) . TrafficLight(p, next(c))
-);
+  TrafficLight(p : Phase, c : Colour) =
+    show(p, c) .
+    (c == red) ->
+      (
+        wait_for(stage(p)) .
+        (
+          handover_control(otherStage(p)) .
+          take_control(stage(p)) .
+          TrafficLight(p, next(c))
+        )
+      )
+    <>
+      (
+        wait_for(stage(p)) . TrafficLight(p, next(c))
+      );
 \end{lstlisting}
 
 
@@ -462,7 +471,22 @@ Die Koordination erfolgt über den \texttt{comm}-Operator im \texttt{Intersectio
 
 %//TODO Irgendwie gefällt mir die Einzeiler aufteilung hier nicht
 \begin{lstlisting}[caption={Dezentrale Synchronisation im Intersection-Prozess}, label={lst:comm-final}]
-    procIntersection =hide({handover_control, take_control, wait_for, ...},allow({show, switch, whole_stage_rdy, ...},comm({handover_control | take_control -> switch,wait_for | wait_for -> whole_stage_rdy},TrafficLight(phaseA, stage1) ||TrafficLight(phaseB, stage1) ||TrafficLight(phaseC, stage1) ||TrafficLight(phaseD, stage1))));
+proc
+  Intersection =
+    hide({handover_control, take_control, wait_for, ...},
+      allow({show, switch, whole_stage_rdy, ...},
+        comm(
+          {
+          	handover_control | take_control -> switch,
+          	wait_for | wait_for -> whole_stage_rdy
+          },
+          TrafficLight(phaseA, stage1) ||
+          TrafficLight(phaseB, stage1) ||
+          TrafficLight(phaseC, stage1) ||
+          TrafficLight(phaseD, stage1)
+          )
+        )
+      );
 \end{lstlisting}
 
 \subsubsection{Analyse}
